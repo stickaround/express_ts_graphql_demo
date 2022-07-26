@@ -182,6 +182,114 @@ const mutation = {
       };
     }
   },
+
+  createUser: async ({
+    username,
+    password,
+  }: {
+    username: string;
+    password: string;
+  }) => {
+    try {
+      if (!(username && password)) {
+        return {
+          data: null,
+          error: 'Invalid credentials!',
+        };
+      }
+      const oldUser = await User.findOne({ username });
+      if (oldUser) {
+        return {
+          data: null,
+          error: 'User with that username already exists!',
+        };
+      }
+      const hashedPassword: string = await bcrypt.hash(password, 10);
+      const user = await User.create({
+        username,
+        password: hashedPassword,
+      });
+      return {
+        data: user,
+        error: '',
+      };
+    } catch (error: any) {
+      return {
+        data: null,
+        error: error.message,
+      };
+    }
+  },
+  updateUser: async ({
+    id,
+    username,
+    password,
+  }: {
+    id: string;
+    username: string;
+    password: string;
+  }) => {
+    try {
+      const updatingUser = await User.findById(id);
+      if (!updatingUser) {
+        return {
+          data: null,
+          error: 'User not found!',
+        };
+      }
+      if (!(username && password)) {
+        return {
+          data: null,
+          error: 'Invalid credentials!',
+        };
+      }
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+        return {
+          data: null,
+          error: 'User with that username already exists!',
+        };
+      }
+      const hashedPassword: string = await bcrypt.hash(password, 10);
+      const updated = await User.findByIdAndUpdate(
+        id,
+        {
+          username,
+          password: hashedPassword,
+        },
+        { new: true }
+      );
+      return {
+        data: updated,
+        error: '',
+      };
+    } catch (error: any) {
+      return {
+        data: null,
+        error: error.message,
+      };
+    }
+  },
+  deleteUser: async ({ id }: { id: string }, context: any) => {
+    try {
+      const deleted = await User.findByIdAndRemove(id);
+      if (!deleted) {
+        return {
+          data: null,
+          error: 'User not found',
+        };
+      }
+      return {
+        data: deleted,
+        error: '',
+      };
+    } catch (error) {
+      return {
+        data: null,
+        error: error.message,
+      };
+    }
+  },
 };
 
 export { mutation };
