@@ -4,12 +4,14 @@ import bcrypt from 'bcrypt';
 import { Post } from '../models/post';
 import { User } from '../models/user';
 import { appConfig } from '../config/constants';
+import { checkAuthentication } from '../middleware/auth';
 
 const mutation = {
   createPost: async (
     { title, content }: { title: string; content: string },
-    context: any
+    { token }: { token: string }
   ) => {
+    checkAuthentication(token);
     try {
       const post = await Post.create({ title, content });
 
@@ -27,8 +29,9 @@ const mutation = {
 
   updatePost: async (
     { id, title, content }: { id: string; title: string; content: string },
-    context: any
+    { token }: { token: string }
   ) => {
+    checkAuthentication(token);
     const update: { title?: string; content?: string } = {};
     if (title) update.title = title;
     if (content) update.content = content;
@@ -108,6 +111,7 @@ const mutation = {
         {
           user_id: user._id,
           username: user.username,
+          role: user.role,
         },
         appConfig.jwtKey,
         { expiresIn: '2d' }
@@ -163,6 +167,7 @@ const mutation = {
         {
           user_id: user._id,
           username: user.username,
+          role: user.role,
         },
         appConfig.jwtKey,
         {
@@ -183,13 +188,17 @@ const mutation = {
     }
   },
 
-  createUser: async ({
-    username,
-    password,
-  }: {
-    username: string;
-    password: string;
-  }) => {
+  createUser: async (
+    {
+      username,
+      password,
+    }: {
+      username: string;
+      password: string;
+    },
+    { token }: { token: string }
+  ) => {
+    checkAuthentication(token);
     try {
       if (!(username && password)) {
         return {
@@ -220,15 +229,19 @@ const mutation = {
       };
     }
   },
-  updateUser: async ({
-    id,
-    username,
-    password,
-  }: {
-    id: string;
-    username: string;
-    password: string;
-  }) => {
+  updateUser: async (
+    {
+      id,
+      username,
+      password,
+    }: {
+      id: string;
+      username: string;
+      password: string;
+    },
+    { token }: { token: string }
+  ) => {
+    checkAuthentication(token);
     try {
       const updatingUser = await User.findById(id);
       if (!updatingUser) {
@@ -270,7 +283,8 @@ const mutation = {
       };
     }
   },
-  deleteUser: async ({ id }: { id: string }, context: any) => {
+  deleteUser: async ({ id }: { id: string }, { token }: { token: string }) => {
+    checkAuthentication(token);
     try {
       const deleted = await User.findByIdAndRemove(id);
       if (!deleted) {

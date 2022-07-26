@@ -10,22 +10,16 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
-let token = '';
-
-const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
-  token = req.headers.authorization || 'abc';
-
-  next();
-};
-
 app.use(
   '/graphql',
-  authMiddleware,
-  graphqlHTTP({
+  graphqlHTTP((req, res, graphqlParmas) => ({
     schema,
     rootValue: resolver,
     graphiql: true,
-  })
+    context: {
+      token: req.headers.authorization ?? '',
+    },
+  }))
 );
 app.use('/', (req: Request, res: Response) => {
   return res.send('Welcome to Post managing site!');

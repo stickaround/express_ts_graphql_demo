@@ -1,23 +1,28 @@
 import { Post } from '../models/post';
 import { User } from '../models/user';
+import { checkAuthentication } from '../middleware/auth';
 
 const query = {
-  posts: async (context: any) => {
+  posts: async (params: any, { token }: { token: string }) => {
+    checkAuthentication(token);
     const posts = await Post.find();
     return posts;
   },
 
-  post: async ({ id }: { id: string }, context: any) => {
+  post: async ({ id }: { id: string }, { token }: { token: string }) => {
+    checkAuthentication(token);
     const post = await Post.findById(id);
     return post;
   },
 
-  users: async (context: any) => {
+  users: async (params: any, { token }: { token: string }) => {
+    checkAuthentication(token);
     const users = await User.find();
     return users;
   },
 
-  user: async ({ id }: { id: string }, context: any) => {
+  user: async ({ id }: { id: string }, { token }: { token: string }) => {
+    checkAuthentication(token);
     const user = await User.findById(id);
     return user;
   },
