@@ -1,4 +1,4 @@
-import { Schema, Document, model, Model } from 'mongoose';
+import { Schema, Document, model } from 'mongoose';
 
 const postSchema = new Schema<iPost>({
   title: {
