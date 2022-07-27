@@ -4,19 +4,20 @@ import bcrypt from 'bcrypt';
 import { Post } from '../models/post';
 import { User } from '../models/user';
 import { appConfig } from '../config/constants';
-import { checkAuthentication } from '../middleware/auth';
+import { checkAuthentication, checkAuthorization } from '../middleware/auth';
 
 const mutation = {
   createPost: async (
     { title, content }: { title: string; content: string },
     { token }: { token: string }
   ) => {
-    checkAuthentication(token);
+    const user = checkAuthentication(token);
     try {
-      const post = await Post.create({ title, content });
-
+      const post = await (
+        await Post.create({ title, content, user_id: user.user_id })
+      ).populate('user_id');
       return {
-        data: post,
+        data: { ...post.toJSON(), user: post.user_id },
         error: '',
       };
     } catch (error: any) {
@@ -31,13 +32,16 @@ const mutation = {
     { id, title, content }: { id: string; title: string; content: string },
     { token }: { token: string }
   ) => {
-    checkAuthentication(token);
-    const update: { title?: string; content?: string } = {};
-    if (title) update.title = title;
-    if (content) update.content = content;
-
     try {
-      const post = await Post.findByIdAndUpdate(id, update, { new: true });
+      const user = checkAuthentication(token);
+      const update: { title?: string; content?: string } = {};
+      if (title) update.title = title;
+      if (content) update.content = content;
+      const updating = await Post.findById(id);
+      checkAuthorization(user, updating);
+      const post = await (
+        await Post.findByIdAndUpdate(id, update, { new: true })
+      ).populate('user_id');
 
       if (!post) {
         return {
@@ -46,7 +50,7 @@ const mutation = {
         };
       }
       return {
-        data: post,
+        data: { ...post.toJSON(), user: post.user_id },
         error: '',
       };
     } catch (error: any) {
@@ -57,10 +61,15 @@ const mutation = {
     }
   },
 
-  deletePost: async ({ id }: { id: string }, context: any) => {
+  deletePost: async ({ id }: { id: string }, { token }: { token: string }) => {
     try {
-      const post = await Post.findByIdAndRemove(id);
-
+      const user = checkAuthentication(token);
+      const deleting = await Post.findById(id);
+      if (!deleting) {
+        throw Error('Not found!');
+      }
+      checkAuthorization(user, deleting);
+      const post = await (await Post.findByIdAndRemove(id)).populate('user_id');
       if (!post) {
         return {
           data: null,
@@ -68,7 +77,7 @@ const mutation = {
         };
       }
       return {
-        data: post,
+        data: { ...post.toJSON(), user: post.user_id },
         error: '',
       };
     } catch (error: any) {
@@ -198,8 +207,11 @@ const mutation = {
     },
     { token }: { token: string }
   ) => {
-    checkAuthentication(token);
     try {
+      const auth = checkAuthentication(token);
+      if (auth.role !== 'admin') {
+        throw Error('Forbidden!');
+      }
       if (!(username && password)) {
         return {
           data: null,
@@ -241,8 +253,11 @@ const mutation = {
     },
     { token }: { token: string }
   ) => {
-    checkAuthentication(token);
     try {
+      const user = checkAuthentication(token);
+      if (user.role !== 'admin') {
+        throw Error('Forbidden!');
+      }
       const updatingUser = await User.findById(id);
       if (!updatingUser) {
         return {
@@ -256,7 +271,7 @@ const mutation = {
           error: 'Invalid credentials!',
         };
       }
-      const existingUser = await User.findOne({ username });
+      const existingUser = await User.findOne({ username, _id: { $ne: id } });
       if (existingUser) {
         return {
           data: null,
@@ -272,8 +287,9 @@ const mutation = {
         },
         { new: true }
       );
+      const posts = await Post.find({ user_id: updated._id });
       return {
-        data: updated,
+        data: { ...updated.toJSON(), posts },
         error: '',
       };
     } catch (error: any) {
@@ -284,9 +300,13 @@ const mutation = {
     }
   },
   deleteUser: async ({ id }: { id: string }, { token }: { token: string }) => {
-    checkAuthentication(token);
     try {
+      const user = checkAuthentication(token);
+      if (user.role !== 'admin') {
+        throw Error('Forbidden!');
+      }
       const deleted = await User.findByIdAndRemove(id);
+      await Post.deleteMany({ user_id: id });
       if (!deleted) {
         return {
           data: null,

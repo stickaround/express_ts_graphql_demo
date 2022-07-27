@@ -1,4 +1,7 @@
+import { Document } from 'mongoose';
 import jwt from 'jsonwebtoken';
+
+import { iPost } from '../models/post';
 
 import { appConfig } from '../config/constants';
 
@@ -19,10 +22,11 @@ export const checkAuthentication = (token: string) => {
   }
 };
 
-// export const isAdmin = (token) => {
-//   const auth = checkAuthorization(token);
-
-//   if (auth.role !== 'admin') {
-//     throw Error('Forbidden');
-//   }
-// };
+export const checkAuthorization = (
+  user: { user_id: string; username: string; role: string },
+  post: iPost
+) => {
+  if (user.role !== 'admin' && post.user_id.toString() !== user.user_id) {
+    throw Error('Forbidden!');
+  }
+};

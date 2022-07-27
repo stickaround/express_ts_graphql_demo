@@ -11,12 +11,18 @@ const postSchema = new Schema<iPost>({
     required: true,
     trim: true,
   },
+  user_id: {
+    type: Schema.Types.ObjectId,
+    ref: 'users',
+    required: true,
+  },
 });
 
 interface iPost extends Document {
   _id: String;
   title: String;
   content: String;
+  user_id: String;
 }
 
 const Post = model('posts', postSchema);
