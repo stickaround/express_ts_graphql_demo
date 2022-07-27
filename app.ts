@@ -1,8 +1,8 @@
-import express, { NextFunction, Request, Response } from 'express';
+import express, { Request, Response } from 'express';
 import { graphqlHTTP } from 'express-graphql';
-import { schema } from './graphql/schema';
-import { resolver } from './graphql/resolver';
 import cors from 'cors';
+
+import { application, schema } from './graphql/application';
 
 const app = express();
 
@@ -14,7 +14,8 @@ app.use(
   '/graphql',
   graphqlHTTP((req, res, graphqlParmas) => ({
     schema,
-    rootValue: resolver,
+    rootValue: application.resolvers,
+    customExecuteFn: application.createExecution(),
     graphiql: true,
     context: {
       token: req.headers.authorization ?? '',
