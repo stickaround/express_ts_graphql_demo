@@ -10,15 +10,15 @@ const postModule = createModule({
     gql`
       type Query {
         posts: PostListResponse
-        post(id: ID!): PostResponse
+        post(id: String!): PostResponse
       }
       type Mutation {
         createPost(title: String!, content: String!): PostResponse
-        updatePost(id: ID!, title: String, content: String): PostResponse
-        deletePost(id: ID!): PostResponse
+        updatePost(id: String, title: String, content: String): PostResponse
+        deletePost(id: String!): PostResponse
       }
       type Post {
-        _id: ID!
+        _id: String!
         title: String!
         content: String!
         user: User!
