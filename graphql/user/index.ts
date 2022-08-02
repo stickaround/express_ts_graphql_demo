@@ -12,12 +12,16 @@ const userModule = createModule({
     gql`
       type Query {
         users: UserList
-        user(id: ID!): UserResponse
+        user(id: String!): UserResponse
       }
       type Mutation {
         createUser(username: String!, password: String!): UserResponse
-        updateUser(id: ID!, username: String!, password: String!): UserResponse
-        deleteUser(id: ID!): UserResponse
+        updateUser(
+          id: String!
+          username: String!
+          password: String!
+        ): UserResponse
+        deleteUser(id: String!): UserResponse
       }
       type UserList {
         data: [User]
@@ -37,7 +41,7 @@ const userModule = createModule({
           if (auth.role !== 'admin') {
             throw Error('Forbidden!');
           }
-          const users = await User.find();
+          const users = await User.find({ _id: { $ne: auth.user_id } });
           return {
             data: users,
             error: '',

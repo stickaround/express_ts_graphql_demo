@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { User } from '../../models/user';
 
 import { appConfig } from '../../config/constants';
+import { checkAuthentication } from '../../middleware/auth';
 
 const authModule = createModule({
   id: 'auth',
@@ -15,15 +16,22 @@ const authModule = createModule({
         login(username: String!, password: String!): AuthResponse
         register(username: String!, password: String!): AuthResponse
       }
+      type Query {
+        getProfile: UserResponse
+      }
       type User {
-        _id: ID!
+        _id: String!
         username: String
         role: String
         posts: [Post!]
       }
+      type UserResponse {
+        data: User
+        error: String
+      }
       type AuthResponse {
         data: User
-        token: String
+        token: String!
         error: String
       }
     `,
@@ -139,6 +147,33 @@ const authModule = createModule({
           return {
             data: null,
             token: '',
+            error: error.message,
+          };
+        }
+      },
+    },
+    Query: {
+      getProfile: async (
+        params: any,
+        args: any,
+        { token }: { token: string }
+      ) => {
+        try {
+          const auth = checkAuthentication(token);
+          const user = await User.findById(auth.user_id);
+          if (!user) {
+            return {
+              data: null,
+              error: 'Not found!',
+            };
+          }
+          return {
+            data: user,
+            error: '',
+          };
+        } catch (error) {
+          return {
+            data: null,
             error: error.message,
           };
         }
